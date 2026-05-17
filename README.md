@@ -115,3 +115,7 @@ MIT License - feel free to use and modify for your own projects.
 ## Acknowledgments
 
 These visualizers were created to demonstrate the power and versatility of genetic algorithms in solving complex optimization problems. They serve both educational and practical purposes.
+
+
+---
+*Built with AI assistance from [Claude (Anthropic)](https://claude.com/).*
