@@ -235,3 +235,25 @@ def test_packing_defaults_usually_find_a_valid_layout():
         found += opt.best_fitness > float("-inf")
         matplotlib.pyplot.close("all")
     assert found >= 7
+
+
+# --- vehicle-routing-optimizer.py: leaving locations out must cost more than serving them -----------------------
+def test_vrp_cost_ranks_more_deliveries_higher():
+    import vehicle_routing_optimizer as vrp
+    random.seed(2)
+    opt, _ = _vrp(2, speed=1.0)
+    for loc in opt.locations[1:]:
+        loc.time_window = (0, 1e9)
+    V = vrp.Vehicle
+    caps = [(v.id, 1e9, v.color) for v in opt.vehicles]
+    everything = [V(i, c, [], col) for i, c, col in caps]
+    everything[0].route = list(range(1, opt.n_locations))
+    fewer = [V(i, c, [], col) for i, c, col in caps]
+    fewer[0].route = list(range(1, opt.n_locations - 3))
+    nothing = [V(i, c, [], col) for i, c, col in caps]
+    assert opt.calculate_fitness(everything)[0] > opt.calculate_fitness(fewer)[0] > 0   # more distance...
+    assert opt.solution_cost(everything) < opt.solution_cost(fewer) < opt.solution_cost(nothing)  # ...but better
+    assert opt.undelivered(fewer) == 3 and opt.undelivered(nothing) == opt.n_locations - 1
+    for v in fewer:
+        v.capacity = 1.0                                              # breaking a constraint is still infinite
+    assert opt.solution_cost(fewer) == float("inf")

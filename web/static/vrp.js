@@ -11,8 +11,8 @@ route('vrp', () => {
     kicker: 'Routing GA · capacities · time windows', title: 'Vehicle Router',
     lead: `Deliver from a central depot to random locations on a 100 × 100 map with a small fleet. Each location has a
       demand, a time window (opening between hour 0 and 12, lasting 4-8 h), a service time and a priority; each vehicle has a
-      capacity of 30-50. A solution is one route per vehicle; its fitness is the total distance, or ∞ if any route
-      breaks a capacity or arrives after a window closes (lower is better).`,
+      capacity of 30-50. A solution is one route per vehicle; its cost is the total distance plus 1,000 for every
+      location left undelivered, or ∞ if any route breaks a capacity or arrives after a window closes (lower is better).`,
     controls: [
       { id: 'n', label: 'Delivery locations (incl. depot)', min: 5, max: 40, value: 20 },
       { id: 'veh', label: 'Vehicles', min: 1, max: 6, value: 3 },
@@ -22,7 +22,7 @@ route('vrp', () => {
     ].map(c => (c.id === 'speed' ? { ...c, id: 'vspeed' } : c)),
     stages: [{ id: 'map', w: 600, h: 460, label: 'Best routes so far: depot (white square), locations by priority (high: large), unassigned locations grey' },
       { id: 'tw', w: 600, h: 260, label: 'Time windows (bars) and arrival times (dots, before any wait for a window to open, as in the desktop plot) along the best routes' }],
-    chartLabel: 'Best total distance in each generation (∞ = no valid solution)', source: 'vehicle-routing-optimizer.py',
+    chartLabel: 'Best cost in each generation: distance + 1000 per undelivered location (∞ = no valid solution)', source: 'vehicle-routing-optimizer.py',
     onReset(p) {
       v = new VRP({ nLocations: p.n, nVehicles: p.veh, speed: p.vspeed }, new Rng(p.seed));
       v.populationSize = p.pop; v.maxGen = p.gens;
@@ -38,16 +38,17 @@ route('vrp', () => {
       <div class="card"><b>Elitism</b><span>The best 10% survive unchanged.</span></div></div>
       <div class="callout"><b>Vehicle speed.</b> The script originally took one map unit to take one hour (speed 1, still its
       default). Legs are then tens of hours long while windows close by hour 20, so almost no location can be served and
-      the routes stay empty; this page therefore starts at speed 15. Set it to 1 to see the desktop behaviour. Locations that the
-      first heuristic cannot place are never added later: the fitness counts distance only, not missed deliveries.</div>`,
+      the routes stay empty; this page therefore starts at speed 15. Set it to 1 to see the desktop behaviour. Every
+      undelivered location adds 1,000 to the cost, so a solution that serves more locations always ranks higher; note
+      that the operators only rearrange locations the first heuristic placed, so they never add a missing one back.</div>`,
   });
 
   function render() {
     const sol = v.best || v.current || v.vehicles.map(() => []);
     drawMap(L.canvas('map'), v, sol); drawWindows(L.canvas('tw'), v, sol);
     const served = new Set(sol.flat());
-    L.chart([{ data: v.history.map(f => (Number.isFinite(f) ? f : NaN)), label: 'best distance' }], { yLabel: 'distance', x0: 1 });
-    L.setReadout([['Generation', `${v.generation} / ${v.maxGen}`], ['Best distance', v.best ? fmt(v.bestFitness) : '-'],
+    L.chart([{ data: v.history.map(f => (Number.isFinite(f) ? f : NaN)), label: 'best cost' }], { yLabel: 'cost', x0: 1 });
+    L.setReadout([['Generation', `${v.generation} / ${v.maxGen}`], ['Best cost', v.best ? fmt(v.bestFitness) : '-'], ['Distance', fmt(v.fitness(sol)[0])],
       ['Locations served', `${served.size} / ${v.nLocations - 1}`],
       ...sol.map((r, i) => [`Vehicle ${i}`, `${r.length} stops, load ${(r.reduce((a, id) => a + v.locations[id].demand, 0) / v.vehicles[i].capacity * 100).toFixed(0)}%`])]);
     L.setStatus(v.generation >= v.maxGen ? 'Finished.' : v.generation ? 'Evolving...' : 'Press Run or Step.');

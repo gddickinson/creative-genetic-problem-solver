@@ -23,7 +23,8 @@ def run(seed, n_loc, n_veh, speed, pop, gens):
             "locations": [[l.x, l.y, l.demand, l.time_window[0], l.time_window[1], l.service_time, l.priority] for l in opt.locations],
             "capacities": [v.capacity for v in opt.vehicles], "initial": [v.route for v in initial],
             "history": [h["best_fitness"] for h in opt.history],
-            "best": [v.route for v in opt.best_solution] if opt.best_solution else None, "best_fitness": opt.best_fitness}
+            "best": [v.route for v in opt.best_solution] if opt.best_solution else None, "best_fitness": opt.best_fitness,
+            "initial_cost": opt.solution_cost(initial), "initial_undelivered": opt.undelivered(initial)}
 
 
 def fixture():

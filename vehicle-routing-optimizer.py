@@ -7,6 +7,11 @@ from dataclasses import dataclass
 import random
 import time
 
+from vehicle_routing_report import print_summary
+
+# Cost added per location left out of every route, larger than any detour on the 100 x 100 map
+UNDELIVERED_PENALTY = 1000.0
+
 @dataclass
 class Location:
     id: int
@@ -247,6 +252,15 @@ class VehicleRoutingOptimizer:
 
         return total_distance, valid
 
+    def undelivered(self, solution: List[Vehicle]) -> int:
+        """Number of locations that no route visits"""
+        return self.n_locations - 1 - len({loc_id for v in solution for loc_id in v.route})
+
+    def solution_cost(self, solution: List[Vehicle]) -> float:
+        """GA cost: total distance plus UNDELIVERED_PENALTY per location left out; inf if a constraint is broken"""
+        distance, valid = self.calculate_fitness(solution)
+        return distance + UNDELIVERED_PENALTY * self.undelivered(solution) if valid else float('inf')
+
     def optimize(self, generations: int = 100, population_size: int = 50):
         """Run genetic algorithm to optimize routes"""
         # Initialize population
@@ -259,9 +273,7 @@ class VehicleRoutingOptimizer:
             # Evaluate solutions
             fitness_scores = []
             for solution in population:
-                distance, valid = self.calculate_fitness(solution)
-                fitness = distance if valid else float('inf')
-                fitness_scores.append((solution, fitness))
+                fitness_scores.append((solution, self.solution_cost(solution)))
 
             # Sort by fitness
             fitness_scores.sort(key=lambda x: x[1])
@@ -311,7 +323,6 @@ class VehicleRoutingOptimizer:
             ax.clear()
 
         solution = self.history[frame]['best_solution']
-        fitness = self.history[frame]['best_fitness']
 
         # Plot 1: Current routes
         ax_routes = self.axes[0, 0]
@@ -339,7 +350,8 @@ class VehicleRoutingOptimizer:
                 ax_routes.plot(xs, ys, c=vehicle.color,
                              label=f'Vehicle {vehicle.id}')
 
-        ax_routes.set_title(f'Current Routes (Distance: {fitness:.1f})')
+        ax_routes.set_title(f'Current Routes (Distance: {self.calculate_fitness(solution)[0]:.1f}, '
+                            f'undelivered: {self.undelivered(solution)})')
         ax_routes.legend()
         ax_routes.grid(True)
 
@@ -360,7 +372,7 @@ class VehicleRoutingOptimizer:
         ax_evolution.plot(history_fitness, 'b-')
         ax_evolution.set_title('Best Route Length Evolution')
         ax_evolution.set_xlabel('Generation')
-        ax_evolution.set_ylabel('Total Distance')
+        ax_evolution.set_ylabel('Cost (distance + undelivered penalty)')
         ax_evolution.grid(True)
 
         # Plot 4: Time windows
@@ -418,60 +430,8 @@ class VehicleRoutingOptimizer:
         plt.show()
 
         # Print final analysis
-        print("\nOptimization Complete!")
-        print("=====================")
+        print_summary(self)
 
-        print(f"\nFinal Solution Statistics:")
-        print(f"Total Distance: {self.best_fitness:.1f}")
-
-        # Analyze vehicle utilization
-        print("\nVehicle Utilization:")
-        for vehicle in self.best_solution:
-            load = sum(self.locations[i].demand for i in vehicle.route)
-            capacity_used = load / vehicle.capacity * 100
-            n_deliveries = len(vehicle.route)
-            print(f"\nVehicle {vehicle.id}:")
-            print(f"  Deliveries: {n_deliveries}")
-            print(f"  Capacity Used: {capacity_used:.1f}%")
-            print(f"  Route: Depot -> {' -> '.join(map(str, vehicle.route))} -> Depot")
-
-        # Time window analysis
-        on_time = 0
-        total_deliveries = 0
-        for vehicle in self.best_solution:
-            current_time = 0
-            prev_loc = self.depot
-            for loc_id in vehicle.route:
-                loc = self.locations[loc_id]
-                travel_time = self.distance(prev_loc, loc) / self.speed
-                current_time += travel_time
-                if loc.time_window[0] <= current_time <= loc.time_window[1]:
-                    on_time += 1
-                current_time += loc.service_time
-                prev_loc = loc
-                total_deliveries += 1
-
-        print(f"\nTime Window Compliance:")
-        print(f"On-time Deliveries: {on_time}/{total_deliveries}")
-        on_time_share = on_time / total_deliveries if total_deliveries else 0.0
-        print(f"On-time Percentage: {on_time_share*100:.1f}%")
-
-        # Suggestions
-        print("\nSuggestions for Improvement:")
-        if total_deliveries == 0:
-            print("- No location could be served within its time window (try a higher vehicle speed)")
-        elif on_time_share < 0.9:
-            print("- Consider adjusting routes to better meet time windows")
-
-        min_utilization = min(sum(self.locations[i].demand for i in v.route)/v.capacity
-                            for v in self.best_solution)
-        if min_utilization < 0.5:
-            print("- Some vehicles are underutilized, consider reducing fleet size")
-
-        max_route = max(len(v.route) for v in self.best_solution)
-        min_route = min(len(v.route) for v in self.best_solution)
-        if max_route > 2 * min_route:
-            print("- Route lengths are unbalanced, consider redistributing deliveries")
 
 if __name__ == "__main__":
     # Configuration

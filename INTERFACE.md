@@ -32,6 +32,12 @@
 | `travelling_sales_person_solver.py` | `travelling-sales-person-solver.py` | `TSPSolver` | TSP |
 | `vehicle_routing_optimizer.py` | `vehicle-routing-optimizer.py` | `VehicleRoutingOptimizer` | CVRPTW |
 
+- **`vehicle_routing_report.py`** -- `print_summary(opt)`: the end-of-run analysis printed by
+  `vehicle-routing-optimizer.py` (split out to keep the script under 500 lines). The optimizer ranks solutions by
+  `solution_cost()` = distance + `UNDELIVERED_PENALTY` (1000) per location no route visits.
+- `packing-optimizer.py`: `PackingItem.footprint()` (rotation-aware size), `PackingOptimizer.ranking_score()` (fitness,
+  or an overlap-depth penalty for invalid layouts) drives selection and mutation.
+
 ### Web interface (`web/`)
 - **`web/app.py`** -- FastAPI app: serves `web/static/`, API under `/api` (`/info`, `/problems`, `/creative/problems`,
   `/portfolio/market/{2..12}`); `STATIC_ENDPOINTS` lists what the static site exports.

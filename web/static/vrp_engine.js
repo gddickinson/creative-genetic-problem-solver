@@ -1,6 +1,7 @@
 // JS port of vehicle-routing-optimizer.py (VehicleRoutingOptimizer): capacitated vehicle routing with time windows.
 // A solution is an array of routes (location ids, depot = 0 implicit at both ends), one per vehicle.
 const asc = (a, b) => (a.f > b.f) - (a.f < b.f);  // stable ascending sort that copes with Infinity
+export const UNDELIVERED_PENALTY = 1000;          // cost per location left out of every route
 
 export class VRP {
   constructor({ nLocations = 20, nVehicles = 3, speed = 1.0 } = {}, R) {
@@ -39,6 +40,9 @@ export class VRP {
     sol.forEach((r, v) => { const [d, ok] = this.routeMetrics(r, this.vehicles[v].capacity); total += d; valid = valid && ok; });
     return [total, valid];
   }
+  undelivered(sol) { return this.nLocations - 1 - new Set(sol.flat()).size; }
+  // solution_cost: distance + penalty per undelivered location; Infinity if a capacity or time window is broken.
+  cost(sol) { const [d, ok] = this.fitness(sol); return ok ? d + UNDELIVERED_PENALTY * this.undelivered(sol) : Infinity; }
   // Cheapest feasible insertion, highest priority first; locations with no feasible slot stay unassigned.
   initialSolution() {
     const routes = this.vehicles.map(() => []);
@@ -89,10 +93,10 @@ export class VRP {
     }
     return m;
   }
-  // One generation of optimize(); invalid solutions score Infinity.
+  // One generation of optimize(): rank by cost (lower is better).
   step() {
     if (!this.population) this.population = Array.from({ length: this.populationSize }, () => this.initialSolution());
-    const scored = this.population.map(s => { const [d, ok] = this.fitness(s); return { s, f: ok ? d : Infinity }; }).sort(asc);
+    const scored = this.population.map(s => ({ s, f: this.cost(s) })).sort(asc);
     if (scored[0].f < this.bestFitness) { this.bestFitness = scored[0].f; this.best = scored[0].s.map(r => r.slice()); }
     this.current = scored[0].s; this.history.push(scored[0].f);
     const next = scored.slice(0, Math.floor(this.populationSize / 10)).map(x => x.s), top = scored.slice(0, 20);

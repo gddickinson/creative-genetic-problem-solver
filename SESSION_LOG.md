@@ -29,3 +29,15 @@ memory 0 uses the whole history); packing rotation flag has no effect; with the 
 seeds never find a valid layout.
 
 Nothing ran on the Mac mini.
+
+## 2026-11-11 (later) -- follow-up fixes requested by the lead
+- game-evolution.py: Tit-for-Tat now cooperates first then copies the opponent's last move; Grudger cooperates until
+  the first defection then always defects; Random ignores history. Cooperative/Defective keep the original rule.
+- packing-optimizer.py: rotation by 90 degrees now swaps a rectangle's footprint everywhere. Cause of "half the default
+  seeds never find a valid layout": every invalid layout scored -inf, so neither selection nor mutation could repair
+  overlaps. The GA now ranks by `ranking_score` (overlap-depth penalty for invalid layouts); default runs find a valid
+  layout on 7/8 Python seeds and 20/20 web seeds.
+- vehicle-routing-optimizer.py: GA cost = distance + 1000 per undelivered location (`solution_cost`), summary moved
+  to `vehicle_routing_report.py`. Still open: the operators never re-insert a location the first heuristic could not
+  place, and the speed default (1.0).
+- JS engines, pages and fixtures regenerated to match; all KIT checks re-run.
