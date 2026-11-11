@@ -80,3 +80,32 @@ def test_vrp_summary_survives_a_solution_with_no_deliveries():
         opt.animate(generations=2, population_size=4)
     assert "On-time Deliveries: 0/0" in out.getvalue()
     matplotlib.pyplot.close("all")
+
+
+# --- maze-pathfinder.py: GA mutation must continue the path from the mutation point ------------------------------
+def _seen_paths(monkeypatch, mod):
+    """Record every path the GA's tournament selection sees (the whole ranked population, each generation)."""
+    seen, real_sample = [], mod.random.sample
+
+    def spy(pop, k):
+        if pop and isinstance(pop[0], tuple) and isinstance(pop[0][0], list):
+            seen.extend(p for p, _ in pop)
+        return real_sample(pop, k)
+    monkeypatch.setattr(mod.random, "sample", spy)
+    return seen
+
+
+@pytest.mark.parametrize("seed", [10, 12])
+def test_maze_ga_paths_stay_connected(seed, monkeypatch):
+    import maze_pathfinder
+    mod = sys.modules["maze_pathfinder_orig"]
+    random.seed(seed)
+    vis = maze_pathfinder.MazeVisualizer(31, 31, population_size=20)
+    vis.generate_maze()
+    seen = _seen_paths(monkeypatch, mod)
+    vis.genetic_pathfind()
+    assert seen, "the GA should run past generation 0 on this maze"
+    for path in seen:
+        assert path[0] == vis.start
+        assert all(abs(a[0] - b[0]) + abs(a[1] - b[1]) == 1 for a, b in zip(path, path[1:]))
+    matplotlib.pyplot.close("all")

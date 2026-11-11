@@ -117,9 +117,9 @@ class MazeVisualizer:
     
     def genetic_pathfind(self) -> List[Tuple[int, int]]:
         """Genetic algorithm for pathfinding"""
-        def create_random_path() -> List[Tuple[int, int]]:
-            path = [self.start]
-            current = self.start
+        def create_random_path(origin: Tuple[int, int] = None) -> List[Tuple[int, int]]:
+            current = origin if origin is not None else self.start
+            path = [current]
             visited = {current}
             max_steps = self.width * self.height
             
@@ -233,8 +233,9 @@ class MazeVisualizer:
                 # Mutation: randomly redirect path
                 if random.random() < 0.1:
                     mutation_point = random.randint(1, len(child)-1)
-                    new_end = create_random_path()
-                    child = child[:mutation_point] + new_end
+                    # Continue from the cell before the mutation point (create_random_path repeats that cell)
+                    new_end = create_random_path(child[mutation_point-1])
+                    child = child[:mutation_point] + new_end[1:]
                 
                 next_population.append(child)
             
