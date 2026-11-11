@@ -91,8 +91,13 @@ class FlowNetworkVisualizer:
             
         return layers
     
-    def find_augmenting_path(self, source: int, sink: int) -> List[Tuple[int, int]]:
-        """Find an augmenting path using BFS"""
+    def find_augmenting_path(self, source: int, sink: int) -> List[Tuple[Tuple[int, int], int]]:
+        """Find an augmenting path in the residual network using BFS.
+
+        Returns a list of (edge, direction) pairs from source to sink: direction +1 pushes flow along the graph
+        edge (u, v); -1 cancels flow on an edge (v, u) that is traversed backwards (the residual reverse edge),
+        which is what lets Ford-Fulkerson reach the true maximum flow.
+        """
         visited = {source: None}
         queue = deque([source])
         
@@ -101,10 +106,14 @@ class FlowNetworkVisualizer:
             if u == sink:
                 break
                 
-            for v in self.graph.neighbors(u):
+            for v in self.graph.successors(u):
                 residual = self.capacities[(u, v)] - self.flows[(u, v)]
                 if v not in visited and residual > 0:
-                    visited[v] = u
+                    visited[v] = ((u, v), 1)
+                    queue.append(v)
+            for v in self.graph.predecessors(u):
+                if v not in visited and self.flows[(v, u)] > 0:
+                    visited[v] = ((v, u), -1)
                     queue.append(v)
         
         if sink not in visited:
@@ -114,9 +123,9 @@ class FlowNetworkVisualizer:
         path = []
         current = sink
         while current != source:
-            prev = visited[current]
-            path.append((prev, current))
-            current = prev
+            edge, direction = visited[current]
+            path.append((edge, direction))
+            current = edge[0] if direction == 1 else edge[1]
         
         return path[::-1]
     
@@ -139,15 +148,15 @@ class FlowNetworkVisualizer:
                 break
                 
             # Find minimum residual capacity along path
-            min_residual = min(self.capacities[edge] - self.flows[edge] 
-                             for edge in path)
+            min_residual = min(self.capacities[edge] - self.flows[edge] if direction == 1
+                               else self.flows[edge] for edge, direction in path)
             
-            # Update flows along path
-            for edge in path:
-                self.flows[edge] += min_residual
+            # Update flows along path (backward steps cancel flow)
+            for edge, direction in path:
+                self.flows[edge] += direction * min_residual
                 
             self.max_flow_value += min_residual
-            self.paths.append(path)
+            self.paths.append([edge for edge, _ in path])
             self.history.append(dict(self.flows))
             
     def update_plot(self, frame: int):
