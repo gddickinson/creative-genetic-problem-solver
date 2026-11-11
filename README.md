@@ -28,7 +28,7 @@ The collection includes:
 
 5. **Neural Network Visualizer** (`neural-vis.py`)
    - Demonstrates neural network evolution
-   - Shows network architecture adaptation
+   - Evolves the weights of a network whose layer sizes you choose
    - Visualizes learning progress
 
 6. **Packing Optimizer** (`packing-optimizer.py`)
@@ -122,12 +122,12 @@ Common features across all visualizers:
 
 ## Implementation Details
 
-Each solver uses genetic algorithms with:
+The genetic-algorithm solvers (all except the flow network and reaction-diffusion demos) use:
 - Population-based evolution
 - Fitness-based selection
 - Crossover and mutation operators
-- Constraint handling
-- Multi-objective optimization
+- Constraint handling (capacities and time windows, non-overlapping items)
+- A single objective per problem (multi-objective optimisation, e.g. NSGA-II, is on the roadmap)
 
 ## Contributing
 
