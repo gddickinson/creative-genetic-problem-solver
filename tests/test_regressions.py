@@ -150,3 +150,15 @@ def test_reaction_diffusion_random_seeds_near_centre(size):
     assert len(xs) > 0
     assert abs(xs.mean() - size / 2) < 8 and abs(ys.mean() - size / 2) < 8
     matplotlib.pyplot.close("all")
+
+
+# --- neural-vis.py: the two 'spiral' classes should interleave, not coincide ------------------------------------
+def test_neural_spiral_classes_are_separate_arms():
+    import neural_vis
+    np.random.seed(0)
+    net = neural_vis.NeuralNetVisualizer([2, 3, 1])
+    X, y = net.generate_data(200, "spiral")
+    a, b = X[y == 0], X[y == 1]
+    # matching points of the two arms sit on opposite sides of the origin (half a turn apart)
+    assert np.mean(np.sum(a * b, axis=1) < 0) > 0.9
+    matplotlib.pyplot.close("all")

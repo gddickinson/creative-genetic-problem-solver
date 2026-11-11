@@ -69,8 +69,9 @@ class NeuralNetVisualizer:
             for i in range(2):
                 t = np.linspace(0, 4*np.pi, points_per_class)
                 r = t + np.random.randn(points_per_class) * 0.2
+                angle = t + i * np.pi  # second arm rotated half a turn so the arms interleave
                 X[i*points_per_class:(i+1)*points_per_class] = np.column_stack([
-                    r*np.cos(t), r*np.sin(t)
+                    r*np.cos(angle), r*np.sin(angle)
                 ])
                 y[i*points_per_class:(i+1)*points_per_class] = i
                 
