@@ -50,3 +50,23 @@ def test_vrp_initial_solution_assigns_each_location_once(seed):
     assigned = sorted(i for v in sol for i in v.route)
     assert assigned == list(range(1, 12))
     matplotlib.pyplot.close("all")
+
+
+def _vrp(seed, **kw):
+    import contextlib
+    import io
+    import vehicle_routing_optimizer as vrp
+    random.seed(seed)
+    with contextlib.redirect_stdout(io.StringIO()):
+        opt = vrp.VehicleRoutingOptimizer(20, 3, **kw)
+        sol = opt.create_initial_solution()
+    matplotlib.pyplot.close("all")
+    return opt, sol
+
+
+def test_vrp_speed_default_keeps_old_behaviour_and_faster_vehicles_serve_more():
+    slow, slow_sol = _vrp(3)
+    same, same_sol = _vrp(3, speed=1.0)
+    assert [v.route for v in slow_sol] == [v.route for v in same_sol]
+    fast, fast_sol = _vrp(3, speed=20.0)
+    assert sum(len(v.route) for v in fast_sol) > sum(len(v.route) for v in slow_sol)

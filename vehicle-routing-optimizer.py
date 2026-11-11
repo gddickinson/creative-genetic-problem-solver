@@ -25,9 +25,12 @@ class Vehicle:
     color: str
 
 class VehicleRoutingOptimizer:
-    def __init__(self, n_locations: int = 20, n_vehicles: int = 3):
+    def __init__(self, n_locations: int = 20, n_vehicles: int = 3, speed: float = 1.0):
         self.n_locations = n_locations
         self.n_vehicles = n_vehicles
+        # Distance units travelled per hour. At 1.0 a leg across the 100 x 100 map takes tens of hours, longer
+        # than most 0-20 h time windows, so few locations can be served on time.
+        self.speed = speed
         self.depot = Location(0, 50, 50, 0, (0, 24), 0, 1)  # Central depot
         self.locations = [self.depot]
         self.vehicles = []
@@ -96,10 +99,10 @@ class VehicleRoutingOptimizer:
         for loc_id in vehicle.route:
             loc = self.locations[loc_id]
 
-            # Add travel time (assume 1 unit distance = 1 unit time)
-            travel_time = self.distance(prev_loc, loc)
-            total_distance += travel_time
-            current_time += travel_time
+            # Add travel time (distance / speed; speed 1.0 means 1 unit distance = 1 unit time)
+            leg = self.distance(prev_loc, loc)
+            total_distance += leg
+            current_time += leg / self.speed
 
             # Check time window
             if current_time < loc.time_window[0]:
@@ -370,7 +373,7 @@ class VehicleRoutingOptimizer:
             for loc_id in vehicle.route:
                 loc = self.locations[loc_id]
                 # Calculate arrival time
-                travel_time = self.distance(prev_loc, loc)
+                travel_time = self.distance(prev_loc, loc) / self.speed
                 current_time += travel_time
 
                 # Plot time window
@@ -440,7 +443,7 @@ class VehicleRoutingOptimizer:
             prev_loc = self.depot
             for loc_id in vehicle.route:
                 loc = self.locations[loc_id]
-                travel_time = self.distance(prev_loc, loc)
+                travel_time = self.distance(prev_loc, loc) / self.speed
                 current_time += travel_time
                 if loc.time_window[0] <= current_time <= loc.time_window[1]:
                     on_time += 1
