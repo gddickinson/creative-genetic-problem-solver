@@ -34,3 +34,19 @@ def test_flow_network_finds_true_maximum_flow(seed):
             outflow = sum(vis.flows[(n, v)] for v in vis.graph.successors(n))
             assert inflow == outflow
     matplotlib.pyplot.close("all")
+
+
+# --- vehicle-routing-optimizer.py: insertion heuristic must restore the route it probed --------------------------
+@pytest.mark.parametrize("seed", range(5))
+def test_vrp_initial_solution_assigns_each_location_once(seed):
+    import vehicle_routing_optimizer as vrp
+    random.seed(seed)
+    opt = vrp.VehicleRoutingOptimizer(12, 3)
+    for loc in opt.locations[1:]:            # make every insertion feasible so only the heuristic is tested
+        loc.time_window = (0, 1e9)
+    for v in opt.vehicles:
+        v.capacity = 1e9
+    sol = opt.create_initial_solution()
+    assigned = sorted(i for v in sol for i in v.route)
+    assert assigned == list(range(1, 12))
+    matplotlib.pyplot.close("all")

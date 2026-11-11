@@ -136,10 +136,11 @@ class VehicleRoutingOptimizer:
             best_cost = float('inf')
 
             for vehicle in vehicles:
+                original_route = vehicle.route
                 # Try inserting location at each position in route
-                for i in range(len(vehicle.route) + 1):
+                for i in range(len(original_route) + 1):
                     # Create new route with location inserted
-                    new_route = vehicle.route.copy()
+                    new_route = original_route.copy()
                     new_route.insert(i, loc_id)
                     vehicle.route = new_route
 
@@ -151,7 +152,7 @@ class VehicleRoutingOptimizer:
                         best_cost = distance
 
                     # Restore original route
-                    vehicle.route = vehicle.route[:-1]
+                    vehicle.route = original_route
 
             if best_vehicle is not None:
                 best_vehicle.route.insert(best_position, loc_id)
