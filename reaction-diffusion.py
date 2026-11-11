@@ -28,10 +28,11 @@ class ReactionDiffusionSimulator:
     def initialize_pattern(self, pattern_type: str = 'random'):
         """Initialize starting pattern"""
         if pattern_type == 'random':
-            # Random spots
+            # Random spots within 5 cells of the centre (45-55 on the default 100 x 100 grid)
+            cx, cy = self.width//2, self.height//2
             for _ in range(10):
-                x = random.randint(45, 55)
-                y = random.randint(45, 55)
+                x = random.randint(cx - 5, cx + 5)
+                y = random.randint(cy - 5, cy + 5)
                 self.V[y-3:y+3, x-3:x+3] = 1.0
                 
         elif pattern_type == 'center':

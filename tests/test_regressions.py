@@ -137,3 +137,16 @@ def test_neural_squares_are_square_outlines(n_samples):
         d = np.minimum(np.abs(P - lo), np.abs(P - hi)).min(axis=1) / (hi - lo).max()
         assert np.mean(d < 0.12) > 0.9, f"class {cls}: points do not lie on a square outline"
     matplotlib.pyplot.close("all")
+
+
+# --- reaction-diffusion.py: 'random' seeds must land on any grid size ---------------------------------------------
+@pytest.mark.parametrize("size", [40, 100, 200])
+def test_reaction_diffusion_random_seeds_near_centre(size):
+    import reaction_diffusion
+    random.seed(1)
+    sim = reaction_diffusion.ReactionDiffusionSimulator(size, size)
+    sim.initialize_pattern("random")
+    ys, xs = np.nonzero(sim.V)
+    assert len(xs) > 0
+    assert abs(xs.mean() - size / 2) < 8 and abs(ys.mean() - size / 2) < 8
+    matplotlib.pyplot.close("all")
