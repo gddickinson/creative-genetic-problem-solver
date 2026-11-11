@@ -162,3 +162,45 @@ def test_neural_spiral_classes_are_separate_arms():
     # matching points of the two arms sit on opposite sides of the origin (half a turn apart)
     assert np.mean(np.sum(a * b, axis=1) < 0) > 0.9
     matplotlib.pyplot.close("all")
+
+
+# --- game-evolution.py: Tit-for-Tat and Grudger behave as the menu describes ------------------------------------
+def _game():
+    import game_evolution
+    vis = game_evolution.GameEvolutionVisualizer(4, 1)
+    vis.setup_prisoners_dilemma()
+    matplotlib.pyplot.close("all")
+    return game_evolution, vis
+
+
+def _moves(vis, me, opponent_moves):
+    """Moves of strategy `me` against a fixed sequence of opponent moves (1 = cooperate)."""
+    return [int(me.decide(list(opponent_moves[:k]))) for k in range(len(opponent_moves))]
+
+
+def test_tit_for_tat_cooperates_first_then_copies_last_move():
+    ge, vis = _game()
+    tft = vis.strategies["Tit-for-Tat"]
+    opp = [0, 1, 1, 0, 0, 1, 0]
+    for seed in range(5):
+        random.seed(seed)
+        assert _moves(vis, tft, opp) == [1] + opp[:-1]
+
+
+def test_grudger_cooperates_until_first_defection_then_always_defects():
+    ge, vis = _game()
+    grudger = vis.strategies["Grudger"]
+    for seed in range(5):
+        random.seed(seed)
+        assert _moves(vis, grudger, [1, 1, 1, 1]) == [1, 1, 1, 1]
+        assert _moves(vis, grudger, [1, 1, 0, 1, 1, 1]) == [1, 1, 1, 0, 0, 0]
+
+
+def test_random_strategy_ignores_history():
+    ge, vis = _game()
+    rnd = vis.strategies["Random"]
+    random.seed(3)
+    a = [rnd.decide([0] * k) for k in range(200)]
+    random.seed(3)
+    b = [rnd.decide([1] * k) for k in range(200)]
+    assert a == b and 60 < sum(a) < 140

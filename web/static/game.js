@@ -26,12 +26,13 @@ route('game', () => {
     onReset(p) { g = new GameEvolution(p.game, { populationSize: p.pop }, new Rng(p.seed)); g.maxGen = p.gens; g.key = p.game; },
     step: () => g.step(), done: () => g.generation >= g.maxGen, render,
     notes: `<h2>Strategies as coded</h2>
-      <p>All five strategies use one rule (<code>Strategy.decide</code>). Until the opponent has made
-      <i>memory</i> moves, cooperate with probability <i>p</i>; after that, cooperate with probability
-      <i>p</i> × (1 + c) / 2, where <i>c</i> is the opponent's cooperation rate over its last <i>memory</i> moves.
-      The names come from the script; the desktop prompt describes Tit-for-Tat as reciprocating and Grudger as defecting
-      for good after a defection, but in the code they differ only in <i>p</i> and <i>memory</i>. With memory 0
-      (Random) the rate is taken over the opponent's whole history.</p>
+      <ul><li><b>Tit-for-Tat</b> cooperates in the first round, then copies the opponent's previous move.</li>
+      <li><b>Grudger</b> cooperates until the opponent defects once, then defects for the rest of the game.</li>
+      <li><b>Random</b> cooperates with probability <i>p</i>, ignoring the opponent.</li>
+      <li><b>Cooperative</b> and <b>Defective</b>: until the opponent has made <i>memory</i> moves, cooperate with
+      probability <i>p</i>; then with probability <i>p</i> × (1 + c) / 2, where <i>c</i> is the opponent's cooperation
+      rate over its last <i>memory</i> moves.</li></ul>
+      <p class="small mute">Mutation changes <i>p</i>, which has no effect on Tit-for-Tat and Grudger (they are deterministic).</p>
       <table class="small"><tr><th>Strategy</th><th>p (start)</th><th>memory</th><th>mutation rate</th></tr>
       ${list(STRATEGIES, s => `<tr><td>${esc(s.name)}</td><td>${s.p}</td><td>${s.mem}</td><td>${s.mut}</td></tr>`)}</table>
       <h2>Payoffs (row player)</h2><div class="three">${list(Object.values(GAMES), v => `<div><h3>${esc(v.name)}</h3>${PAY(v)}</div>`)}</div>`,

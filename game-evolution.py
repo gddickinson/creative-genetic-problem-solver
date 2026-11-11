@@ -14,7 +14,17 @@ class Strategy:
     mutation_rate: float   # How likely to change behavior
     
     def decide(self, history: List[int]) -> bool:
-        """Make a decision based on strategy"""
+        """Make a decision based on strategy (history = opponent's past moves, 1 = cooperate)"""
+        if self.name == 'Tit-for-Tat':
+            # Cooperate first, then copy the opponent's last move
+            return not history or history[-1] == 1
+        if self.name == 'Grudger':
+            # Cooperate until the opponent defects once, then always defect
+            return all(history)
+        if self.name == 'Random' or self.memory_length == 0:
+            # Random choice, independent of history
+            return random.random() < self.cooperate_prob
+
         if not history or len(history) < self.memory_length:
             return random.random() < self.cooperate_prob
         

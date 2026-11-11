@@ -13,8 +13,11 @@ export const STRATEGIES = [['Cooperative', 0.9, 1, 0.1], ['Defective', 0.1, 1, 0
   ['Grudger', 0.7, 3, 0.1], ['Random', 0.5, 0, 0.1]].map(([name, p, mem, mut]) => ({ name, p, mem, mut }));
 
 export function decide(s, history, R) {
+  if (s.name === 'Tit-for-Tat') return !history.length || history[history.length - 1] === 1;   // copy last move
+  if (s.name === 'Grudger') return history.every(m => m === 1);                              // never forgive
+  if (s.name === 'Random' || s.mem === 0) return R.random() < s.p;                           // ignores history
   if (!history.length || history.length < s.mem) return R.random() < s.p;
-  const recent = s.mem === 0 ? history : history.slice(-s.mem);          // Python history[-0:] is the whole list
+  const recent = history.slice(-s.mem);
   const rate = recent.reduce((a, b) => a + b, 0) / recent.length;
   return R.random() < s.p * (1 + rate) / 2;
 }
