@@ -4,17 +4,33 @@ const MARGIN = 0.2;                               // SAFETY_MARGIN in PackingIte
 const clip = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const desc = (a, b) => (b.f > a.f) - (b.f < a.f); // stable descending sort that copes with -Infinity
 
+// [width, height] as placed: a rectangle turned by 90 or 270 degrees swaps its sides.
+export const footprint = it => (it.h !== null && it.rot % 180 === 90 ? [it.h, it.w] : [it.w, it.h]);
+
 export function overlaps(a, b) {
   if (a.h === null && b.h === null) return Math.hypot(a.x - b.x, a.y - b.y) < a.w + b.w + MARGIN;
   if (a.h !== null && b.h !== null) {
-    const m = MARGIN / 2;
-    const xo = !(a.x + a.w + m < b.x - m || a.x - m > b.x + b.w + m);
-    const yo = !(a.y + a.h + m < b.y - m || a.y - m > b.y + b.h + m);
+    const m = MARGIN / 2, [aw, ah] = footprint(a), [bw, bh] = footprint(b);
+    const xo = !(a.x + aw + m < b.x - m || a.x - m > b.x + bw + m);
+    const yo = !(a.y + ah + m < b.y - m || a.y - m > b.y + bh + m);
     return xo && yo;
   }
-  const [c, r] = a.h === null ? [a, b] : [b, a];
-  const cx = Math.max(r.x, Math.min(c.x, r.x + r.w)), cy = Math.max(r.y, Math.min(c.y, r.y + r.h));
+  const [c, r] = a.h === null ? [a, b] : [b, a], [rw, rh] = footprint(r);
+  const cx = Math.max(r.x, Math.min(c.x, r.x + rw)), cy = Math.max(r.y, Math.min(c.y, r.y + rh));
   return Math.hypot(c.x - cx, c.y - cy) < c.w + MARGIN;
+}
+
+// PackingItem.overlap_depth: how far two items (with the margin) interpenetrate.
+export function overlapDepth(a, b) {
+  if (a.h === null && b.h === null) return Math.max(0, a.w + b.w + MARGIN - Math.hypot(a.x - b.x, a.y - b.y));
+  if (a.h !== null && b.h !== null) {
+    const [aw, ah] = footprint(a), [bw, bh] = footprint(b);
+    const xo = Math.min(a.x + aw, b.x + bw) - Math.max(a.x, b.x) + MARGIN, yo = Math.min(a.y + ah, b.y + bh) - Math.max(a.y, b.y) + MARGIN;
+    return Math.max(0, Math.min(xo, yo));
+  }
+  const [c, r] = a.h === null ? [a, b] : [b, a], [rw, rh] = footprint(r);
+  const cx = Math.max(r.x, Math.min(c.x, r.x + rw)), cy = Math.max(r.y, Math.min(c.y, r.y + rh));
+  return Math.max(0, c.w + MARGIN - Math.hypot(c.x - cx, c.y - cy));
 }
 
 export class Packing {
@@ -47,11 +63,27 @@ export class Packing {
     return sol;
   }
   // -Infinity if any item leaves the container or two items overlap; else minus the summed distance to the centre.
+  bounds(it) {                                   // [left, right, bottom, top]
+    if (it.h === null) return [it.x - it.w, it.x + it.w, it.y - it.w, it.y + it.w];
+    const [w, h] = footprint(it); return [it.x, it.x + w, it.y, it.y + h];
+  }
+  outside(it) { const [l, r, b, t] = this.bounds(it); return l < 0 || r > this.W || b < 0 || t > this.H; }
+  outsideDepth(it) { const [l, r, b, t] = this.bounds(it); return Math.max(0, -l) + Math.max(0, r - this.W) + Math.max(0, -b) + Math.max(0, t - this.H); }
+  violations(sol) {
+    let n = sol.filter(it => this.outside(it)).length;
+    for (let i = 0; i < sol.length; i++) for (let j = i + 1; j < sol.length; j++) n += overlaps(sol[i], sol[j]) ? 1 : 0;
+    return n;
+  }
+  // ranking_score: the fitness for valid layouts; invalid ones rank below, by total overlap depth and violations.
+  score(sol) {
+    const f = this.fitness(sol);
+    if (f > -Infinity) return f;
+    let depth = sol.reduce((a, it) => a + this.outsideDepth(it), 0);
+    for (let i = 0; i < sol.length; i++) for (let j = i + 1; j < sol.length; j++) depth += overlapDepth(sol[i], sol[j]);
+    return -1e6 - 1000 * depth - 10 * this.violations(sol);
+  }
   fitness(sol) {
-    for (const it of sol) {
-      if (it.h === null ? (it.x - it.w < 0 || it.x + it.w > this.W || it.y - it.w < 0 || it.y + it.w > this.H)
-        : (it.x < 0 || it.x + it.w > this.W || it.y < 0 || it.y + it.h > this.H)) return -Infinity;
-    }
+    if (sol.some(it => this.outside(it))) return -Infinity;
     for (let i = 0; i < sol.length; i++) for (let j = i + 1; j < sol.length; j++) if (overlaps(sol[i], sol[j])) return -Infinity;
     const cx = this.W / 2, cy = this.H / 2;
     return -sol.reduce((s, it) => s + Math.sqrt((it.x - cx) ** 2 + (it.y - cy) ** 2), 0);
@@ -70,9 +102,10 @@ export class Packing {
           } else {
             const x = it.x + R.gauss(0, scale), y = it.y + R.gauss(0, scale);
             let rot = it.rot; if (R.random() < 0.1) rot = (rot + 90) % 360;
-            n = { x: clip(x, 0, this.W - it.w), y: clip(y, 0, this.H - it.h), w: it.w, h: it.h, rot };
+            const [w, h] = footprint({ w: it.w, h: it.h, rot });
+            n = { x: clip(x, 0, this.W - w), y: clip(y, 0, this.H - h), w: it.w, h: it.h, rot };
           }
-          const f = this.fitness([...out, n, ...sol.slice(out.length + 1)]);
+          const f = this.score([...out, n, ...sol.slice(out.length + 1)]);
           if (f > bestF) { bestItem = n; bestF = f; }
         }
         out.push(bestItem || it);
@@ -83,10 +116,11 @@ export class Packing {
   // One generation of evolve().
   step() {
     if (!this.population) this.population = Array.from({ length: this.populationSize }, () => this.randomSolution());
-    const scored = this.population.map(s => ({ s, f: this.fitness(s) })).sort(desc);
-    if (scored[0].f > this.bestFitness) { this.bestFitness = scored[0].f; this.best = scored[0].s; }
+    const scored = this.population.map(s => ({ s, f: this.score(s) })).sort(desc);
+    const topF = this.fitness(scored[0].s);                    // true fitness (-Infinity if invalid)
+    if (topF > this.bestFitness) { this.bestFitness = topF; this.best = scored[0].s; }
     this.history.push(this.bestFitness); this.current = scored[0].s;
-    this.valid = scored.filter(x => x.f > -Infinity).length;
+    this.valid = scored.filter(x => x.f > -1e6).length;
     const next = scored.slice(0, 2).map(x => x.s), top = scored.slice(0, 10);
     while (next.length < this.populationSize) {
       const [a, b] = this.R.sample(top, 2);

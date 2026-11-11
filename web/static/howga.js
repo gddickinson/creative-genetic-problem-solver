@@ -17,7 +17,7 @@ const TABLE = [
   ['tsp', 'Travelling salesperson', 'order of the 15 cities', 'tour length (minimise)', 'tournament of 5', 'order crossover (OX)', 'swap two cities, p 0.01', 'best 1'],
   ['creative', 'Generic problem solver', 'point (x, y) in a box', 'one of 12 landscape functions (maximise)', 'tournament of 10% of the population', 'blend α·p1 + (1−α)·p2, p 0.7', 'gaussian σ 0.1 per gene, p 0.1, clipped', 'best 2'],
   ['vrp', 'Vehicle routing', 'one route per vehicle', 'total distance, ∞ if a capacity or time window is broken', '2-way tournament in top 20', 'prefix of parent 1 + rest of parent 2', 'swap / reverse / relocate, p 0.1', 'best 10%'],
-  ['packing', 'Packing', 'position of every item', '−(distance to centre), −∞ if overlapping', 'random pair from top 10', 'each item from either parent', '5 gaussian moves, keep the best, p 0.1 per item', 'best 2'],
+  ['packing', 'Packing', 'position of every item', '−(distance to centre), −∞ if overlapping (invalid layouts ranked by overlap depth)', 'random pair from top 10', 'each item from either parent', '5 gaussian moves, keep the best, p 0.1 per item', 'best 2'],
   ['portfolio', 'Portfolio', 'asset weights summing to 1', 'Sharpe ratio (maximise)', '2-way tournament in top 20', 'average of the parents', 'gaussian σ 0.1, p 0.1, renormalise', 'best 10%'],
   ['neural', 'Neural network', 'all weights and biases', 'training accuracy', 'random pair from top 10', 'each weight from either parent', 'gaussian σ 0.1, p 0.1 per weight', 'best 2'],
   ['game', 'Game theory', 'a strategy and its cooperation probability', 'total payoff against everyone', 'fitness-proportional (roulette)', 'none (asexual copies)', 'cooperation probability ± N(0, 0.1), p 0.1', 'none'],

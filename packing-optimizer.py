@@ -15,6 +15,29 @@ class PackingItem:
     height: float = None  # If None, item is circular with width as radius
     rotation: float = 0   # Rotation in degrees (for rectangles)
     
+    def footprint(self) -> Tuple[float, float]:
+        """(width, height) as placed: a rectangle turned by 90 or 270 degrees swaps its sides"""
+        if self.height is not None and self.rotation % 180 == 90:
+            return self.height, self.width
+        return self.width, self.height
+
+    def overlap_depth(self, other: 'PackingItem') -> float:
+        """How far the two items (with the safety margin) interpenetrate; 0 if they are clear of each other"""
+        m = 0.2  # SAFETY_MARGIN in overlaps()
+        if self.height is None and other.height is None:
+            return max(0.0, self.width + other.width + m - np.hypot(self.x - other.x, self.y - other.y))
+        if self.height is not None and other.height is not None:
+            sw, sh = self.footprint()
+            ow, oh = other.footprint()
+            xo = min(self.x + sw, other.x + ow) - max(self.x, other.x) + m
+            yo = min(self.y + sh, other.y + oh) - max(self.y, other.y) + m
+            return max(0.0, min(xo, yo))
+        circle, rect = (self, other) if self.height is None else (other, self)
+        rw, rh = rect.footprint()
+        cx = max(rect.x, min(circle.x, rect.x + rw))
+        cy = max(rect.y, min(circle.y, rect.y + rh))
+        return max(0.0, circle.width + m - np.hypot(circle.x - cx, circle.y - cy))
+
     def overlaps(self, other: 'PackingItem') -> bool:
         """Check if this item overlaps with another, with safety margin"""
         SAFETY_MARGIN = 0.2  # Increased safety margin
@@ -27,15 +50,17 @@ class PackingItem:
         elif self.height is not None and other.height is not None:
             # Both are rectangles - use simpler but more conservative AABB check
             # Add safety margin to dimensions
+            sw, sh = self.footprint()
+            ow, oh = other.footprint()
             self_left = self.x - SAFETY_MARGIN/2
-            self_right = self.x + self.width + SAFETY_MARGIN/2
+            self_right = self.x + sw + SAFETY_MARGIN/2
             self_bottom = self.y - SAFETY_MARGIN/2
-            self_top = self.y + self.height + SAFETY_MARGIN/2
+            self_top = self.y + sh + SAFETY_MARGIN/2
             
             other_left = other.x - SAFETY_MARGIN/2
-            other_right = other.x + other.width + SAFETY_MARGIN/2
+            other_right = other.x + ow + SAFETY_MARGIN/2
             other_bottom = other.y - SAFETY_MARGIN/2
-            other_top = other.y + other.height + SAFETY_MARGIN/2
+            other_top = other.y + oh + SAFETY_MARGIN/2
             
             # Check for overlap in x and y directions
             x_overlap = not (self_right < other_left or self_left > other_right)
@@ -51,8 +76,9 @@ class PackingItem:
                 circle, rect = other, self
                 
             # Find closest point on rectangle to circle center
-            closest_x = max(rect.x, min(circle.x, rect.x + rect.width))
-            closest_y = max(rect.y, min(circle.y, rect.y + rect.height))
+            rw, rh = rect.footprint()
+            closest_x = max(rect.x, min(circle.x, rect.x + rw))
+            closest_y = max(rect.y, min(circle.y, rect.y + rh))
             
             # Calculate distance from closest point to circle center
             distance = np.sqrt(
@@ -154,20 +180,53 @@ class PackingOptimizer:
         
         return solution
     
+    def outside(self, item: PackingItem) -> bool:
+        """True if the item sticks out of the container"""
+        if item.height is None:  # Circle
+            return (item.x - item.width < 0 or item.x + item.width > self.container_width or
+                    item.y - item.width < 0 or item.y + item.width > self.container_height)
+        w, h = item.footprint()  # Rectangle (rotation-aware)
+        return item.x < 0 or item.x + w > self.container_width or item.y < 0 or item.y + h > self.container_height
+
+    def violations(self, solution: List[PackingItem]) -> int:
+        """Number of items outside the container plus number of overlapping pairs"""
+        count = sum(1 for item in solution if self.outside(item))
+        for i in range(len(solution)):
+            for j in range(i + 1, len(solution)):
+                count += solution[i].overlaps(solution[j])
+        return count
+
+    def outside_depth(self, item: PackingItem) -> float:
+        """How far the item sticks out of the container (0 if inside)"""
+        if item.height is None:
+            lo_x, hi_x, lo_y, hi_y = item.x - item.width, item.x + item.width, item.y - item.width, item.y + item.width
+        else:
+            w, h = item.footprint()
+            lo_x, hi_x, lo_y, hi_y = item.x, item.x + w, item.y, item.y + h
+        return (max(0.0, -lo_x) + max(0.0, hi_x - self.container_width) +
+                max(0.0, -lo_y) + max(0.0, hi_y - self.container_height))
+
+    def ranking_score(self, solution: List[PackingItem]) -> float:
+        """Fitness for valid layouts; invalid ones rank below every valid one, less overlap first.
+
+        The fitness itself is -inf for every invalid layout, which gave the GA nothing to climb: mutation kept
+        only moves that improved it and selection could not tell near-misses from hopeless layouts, so a
+        population that started without a valid layout never found one. The penalty (total overlap depth plus
+        a small cost per violation) lets evolution push overlapping items apart.
+        """
+        fitness, valid = self.calculate_fitness(solution)
+        if valid:
+            return fitness
+        depth = sum(self.outside_depth(item) for item in solution)
+        depth += sum(solution[i].overlap_depth(solution[j])
+                     for i in range(len(solution)) for j in range(i + 1, len(solution)))
+        return -1e6 - 1000.0 * depth - 10.0 * self.violations(solution)
+
     def calculate_fitness(self, solution: List[PackingItem]) -> Tuple[float, bool]:
         """Calculate fitness of a solution, returns (fitness, is_valid)"""
         # Check for containment and overlaps
-        for item in solution:
-            if item.height is None:  # Circle
-                if (item.x - item.width < 0 or 
-                    item.x + item.width > self.container_width or
-                    item.y - item.width < 0 or 
-                    item.y + item.width > self.container_height):
-                    return float('-inf'), False
-            else:  # Rectangle
-                if (item.x < 0 or item.x + item.width > self.container_width or
-                    item.y < 0 or item.y + item.height > self.container_height):
-                    return float('-inf'), False
+        if any(self.outside(item) for item in solution):
+            return float('-inf'), False
         
         # Check for overlaps
         for i in range(len(solution)):
@@ -224,16 +283,17 @@ class PackingOptimizer:
                     else:  # Rectangle
                         x = item.x + random.gauss(0, mutation_scale)
                         y = item.y + random.gauss(0, mutation_scale)
-                        x = np.clip(x, 0, self.container_width - item.width)
-                        y = np.clip(y, 0, self.container_height - item.height)
                         rotation = item.rotation
                         if random.random() < 0.1:  # 10% chance to rotate
                             rotation = (rotation + 90) % 360
                         new_item = PackingItem(x, y, item.width, item.height, rotation)
+                        w, h = new_item.footprint()
+                        new_item.x = np.clip(x, 0, self.container_width - w)
+                        new_item.y = np.clip(y, 0, self.container_height - h)
                     
                     # Check if this mutation is better
                     temp_solution = mutated + [new_item] + solution[len(mutated)+1:]
-                    fitness, _ = self.calculate_fitness(temp_solution)
+                    fitness = self.ranking_score(temp_solution)
                     if fitness > best_fitness:
                         best_mutated = new_item
                         best_fitness = fitness
@@ -253,14 +313,15 @@ class PackingOptimizer:
         for generation in range(generations):
             self.current_generation = generation
             
-            # Evaluate fitness
-            fitness_scores = [(solution, self.calculate_fitness(solution)[0])
+            # Rank layouts (invalid ones by how few violations they have)
+            fitness_scores = [(solution, self.ranking_score(solution))
                             for solution in population]
             fitness_scores.sort(key=lambda x: x[1], reverse=True)
             
-            # Update best solution
-            if fitness_scores[0][1] > self.best_fitness:
-                self.best_fitness = fitness_scores[0][1]
+            # Update best solution (valid layouts only: the true fitness is -inf otherwise)
+            top_fitness = self.calculate_fitness(fitness_scores[0][0])[0]
+            if top_fitness > self.best_fitness:
+                self.best_fitness = top_fitness
                 self.best_solution = fitness_scores[0][0]
             
             # Record history
@@ -323,13 +384,14 @@ class PackingOptimizer:
                                     fill=False, linestyle='--', color=color)
                 ax_pack.add_patch(circle_margin)
             else:  # Rectangle
-                rect = Rectangle((item.x, item.y), item.width, item.height,
+                w, h = item.footprint()
+                rect = Rectangle((item.x, item.y), w, h,
                                fill=True, alpha=0.5, color=color)
                 ax_pack.add_patch(rect)
                 # Draw safety margin
                 margin = 0.5
                 rect_margin = Rectangle((item.x - margin/2, item.y - margin/2),
-                                     item.width + margin, item.height + margin,
+                                     w + margin, h + margin,
                                      fill=False, linestyle='--', color=color)
                 ax_pack.add_patch(rect_margin)
             
@@ -339,7 +401,7 @@ class PackingOptimizer:
                     if item.height is None:
                         ax_pack.plot(item.x, item.y, 'rx', markersize=10)
                     else:
-                        ax_pack.plot(item.x + item.width/2, item.y + item.height/2, 
+                        ax_pack.plot(item.x + item.footprint()[0]/2, item.y + item.footprint()[1]/2, 
                                    'rx', markersize=10)
         
         ax_pack.set_title(f'Generation {frame}: Packing Layout')

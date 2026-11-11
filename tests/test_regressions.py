@@ -204,3 +204,34 @@ def test_random_strategy_ignores_history():
     random.seed(3)
     b = [rnd.decide([1] * k) for k in range(200)]
     assert a == b and 60 < sum(a) < 140
+
+
+# --- packing-optimizer.py: rotation must change a rectangle's footprint; invalid layouts must be repairable ------
+def test_packing_rotation_swaps_rectangle_footprint():
+    import packing_optimizer as po
+    opt = po.PackingOptimizer(5.0, 3.0)
+    upright = po.PackingItem(0.5, 0.5, 1.0, 2.0, 0)
+    turned = po.PackingItem(0.5, 0.5, 1.0, 2.0, 90)
+    assert opt.calculate_fitness([upright])[1]
+    assert opt.calculate_fitness([po.PackingItem(0.5, 0.5, 1.0, 2.5, 0)])[1]
+    assert not opt.calculate_fitness([po.PackingItem(2.0, 0.5, 1.0, 4.0, 0)])[1]     # 4 tall in a 3-high box
+    assert opt.calculate_fitness([po.PackingItem(0.5, 0.5, 1.0, 4.0, 90)])[1]        # lying down it fits
+    probe = po.PackingItem(2.3, 0.5, 0.5, 0.5, 0)        # right of the upright one, inside the turned one
+    assert not upright.overlaps(probe) and turned.overlaps(probe)
+    matplotlib.pyplot.close("all")
+
+
+def test_packing_defaults_usually_find_a_valid_layout():
+    import contextlib
+    import io
+    import packing_optimizer as po
+    found = 0
+    for seed in range(8):
+        random.seed(seed)
+        with contextlib.redirect_stdout(io.StringIO()):
+            opt = po.PackingOptimizer(10.0, 10.0)
+            opt.generate_items("circles", 10)
+            opt.evolve(25)
+        found += opt.best_fitness > float("-inf")
+        matplotlib.pyplot.close("all")
+    assert found >= 7
