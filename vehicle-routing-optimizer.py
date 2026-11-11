@@ -453,11 +453,14 @@ class VehicleRoutingOptimizer:
 
         print(f"\nTime Window Compliance:")
         print(f"On-time Deliveries: {on_time}/{total_deliveries}")
-        print(f"On-time Percentage: {(on_time/total_deliveries*100):.1f}%")
+        on_time_share = on_time / total_deliveries if total_deliveries else 0.0
+        print(f"On-time Percentage: {on_time_share*100:.1f}%")
 
         # Suggestions
         print("\nSuggestions for Improvement:")
-        if on_time/total_deliveries < 0.9:
+        if total_deliveries == 0:
+            print("- No location could be served within its time window (try a higher vehicle speed)")
+        elif on_time_share < 0.9:
             print("- Consider adjusting routes to better meet time windows")
 
         min_utilization = min(sum(self.locations[i].demand for i in v.route)/v.capacity

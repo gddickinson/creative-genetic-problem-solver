@@ -70,3 +70,13 @@ def test_vrp_speed_default_keeps_old_behaviour_and_faster_vehicles_serve_more():
     assert [v.route for v in slow_sol] == [v.route for v in same_sol]
     fast, fast_sol = _vrp(3, speed=20.0)
     assert sum(len(v.route) for v in fast_sol) > sum(len(v.route) for v in slow_sol)
+
+
+def test_vrp_summary_survives_a_solution_with_no_deliveries():
+    import contextlib
+    import io
+    opt, _ = _vrp(0)                             # desktop defaults: no location fits its time window
+    with contextlib.redirect_stdout(io.StringIO()) as out:
+        opt.animate(generations=2, population_size=4)
+    assert "On-time Deliveries: 0/0" in out.getvalue()
+    matplotlib.pyplot.close("all")
