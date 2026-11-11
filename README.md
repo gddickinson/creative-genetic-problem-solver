@@ -7,7 +7,7 @@ This repository contains a collection of interactive visualizations demonstratin
 The collection includes:
 
 1. **Flow Network Optimizer** (`flow-network.py`)
-   - Visualizes maximum flow in networks
+   - Visualizes maximum flow in networks (Ford-Fulkerson; no genetic algorithm)
    - Shows network bottleneck identification
    - Demonstrates flow path optimization
 
@@ -42,7 +42,7 @@ The collection includes:
    - Visualizes risk-return tradeoffs
 
 8. **Reaction-Diffusion Simulator** (`reaction-diffusion.py`)
-   - Simulates pattern formation
+   - Simulates pattern formation (Gray-Scott model; no genetic algorithm)
    - Shows emergence of complex patterns
    - Visualizes system evolution
 
@@ -55,6 +55,35 @@ The collection includes:
     - Handles multiple vehicle constraints
     - Shows time window optimization
     - Visualizes route planning
+
+## Web version
+
+**Live site: https://gddickinson.github.io/creative-genetic-problem-solver/** (published from `main` by GitHub Actions)
+
+Every solver runs in the browser: each script's problem generator, fitness function and GA operators are ported to
+JavaScript (`web/static/*_engine.js`) and node-tested against the Python. The tests swap one seeded random-number
+generator into the real scripts and check that the JavaScript reproduces their routes, layouts, networks and fitness
+histories (`scripts/make_*_fixture.py`, `tests/fixtures/`). There is one page per solver with its parameters, a live
+view of the population and best solution, and a fitness-over-generations chart, plus an overview of how the GAs work.
+
+![Home page](docs/img/home.png)
+![Travelling salesperson](docs/img/tsp.png)
+![Generic problem solver on a fitness landscape](docs/img/creative.png)
+![Vehicle routing with time windows](docs/img/vrp.png)
+![Neural network evolved on the spiral pattern](docs/img/neural.png)
+
+### Run the web app
+
+```bash
+pip install -r requirements-web.txt
+python run_web.py                       # http://127.0.0.1:8154
+python -m pytest -q tests               # solver regressions, web API, Python-vs-JS fixtures, node engine tests
+python scripts/build_static.py          # export the static site to site/
+python scripts/screenshots.py --static "" tsp maze   # smoke test in Chrome (needs playwright)
+```
+
+The pages run without the server; the local app adds a small API (solver catalogue with the desktop defaults, and the
+portfolio market data exactly as NumPy generates it), which the static site ships as JSON.
 
 ## Requirements
 

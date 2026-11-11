@@ -1,0 +1,24 @@
+/* Creative GA Visualizers: acid-lime accent with magenta and cyan on the shared neon theme, plus page styles. */
+:root { --accent:#b6ff3d; --accent2:#ff4fd8; --accent3:#3dd6ff; --glow:rgba(182,255,61,.13); }
+button, .btn, .seg button.on { color:#0c1402; }
+.mark { border-radius:4px; transform:rotate(45deg); }
+.fig { margin:0 0 12px; } .fig canvas { width:100%; height:auto; display:block; background:#060814; border:1px solid var(--line); border-radius:6px; }
+.fig figcaption { margin-top:4px; }
+.lab { display:grid; grid-template-columns:290px 1fr; gap:20px; align-items:start; margin-top:10px; }
+.lab .controls { position:sticky; top:84px; padding:8px 16px 14px; margin:0; }
+.lab .controls .btns button { margin:10px 6px 0 0; }
+.lab .view { min-width:0; }
+.lab .view.two-up { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.readout { font:13px var(--mono); background:rgba(3,5,10,.9); border:1px solid var(--line); border-radius:4px; padding:10px 12px; }
+.readout div { display:flex; justify-content:space-between; gap:10px; } .readout b { color:var(--accent); text-align:right; }
+.notes { margin-top:20px; }
+.door b { color:var(--accent); } .door .tag { margin-top:8px; }
+.legend { display:flex; flex-wrap:wrap; gap:4px 14px; font:12px var(--mono); color:var(--mute); margin:4px 0 8px; }
+.legend i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:-1px; }
+.ops { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:10px; }
+.ops .card b { font-size:15px; }
+.flowsteps { counter-reset:s; list-style:none; padding:0; } .flowsteps li { counter-increment:s; margin:8px 0; padding-left:36px; position:relative; }
+.flowsteps li::before { content:counter(s); position:absolute; left:0; top:0; width:24px; height:24px; border-radius:50%; background:var(--accent); color:#0c1402; font:600 13px/24px var(--mono); text-align:center; }
+@media (max-width:860px) {
+  .lab { grid-template-columns:1fr; } .lab .controls { position:static; } .lab .view.two-up { grid-template-columns:1fr; }
+}

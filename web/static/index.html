@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creative GA Visualizers</title>
+<meta name="description" content="Interactive visualizations of genetic algorithms solving complex problems: TSP, vehicle routing, packing, portfolios, neural networks, game theory, mazes, plus max-flow and reaction-diffusion. Runs in your browser.">
+<link rel="icon" href="static/icon.svg">
+<link rel="stylesheet" href="static/style.css">
+<link rel="stylesheet" href="static/style_app.css">
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+<header class="top">
+  <a class="brand" href="#/"><span class="mark"></span>Creative GA Visualizers</a>
+  <nav class="groups">
+    <a href="#/ga" data-nav="ga">How GAs work</a>
+    <details><summary>Genetic algorithms</summary><div class="menu">
+      <a href="#/tsp" data-nav="tsp">Travelling salesperson</a>
+      <a href="#/creative" data-nav="creative">Generic problem solver</a>
+      <a href="#/vrp" data-nav="vrp">Vehicle routing</a>
+      <a href="#/packing" data-nav="packing">Packing</a>
+      <a href="#/portfolio" data-nav="portfolio">Portfolio</a>
+      <a href="#/neural" data-nav="neural">Neural network</a>
+      <a href="#/game" data-nav="game">Game theory</a>
+      <a href="#/maze" data-nav="maze">Maze pathfinder</a>
+    </div></details>
+    <details><summary>Other demos</summary><div class="menu">
+      <a href="#/flow" data-nav="flow">Flow network (max-flow)</a>
+      <a href="#/rd" data-nav="rd">Reaction-diffusion</a>
+    </div></details>
+    <a href="#/about" data-nav="about">About</a>
+  </nav>
+  <div class="right"><a class="small mute" href="https://github.com/gddickinson/creative-genetic-problem-solver" target="_blank" rel="noopener">GitHub</a></div>
+</header>
+<main id="app" tabindex="-1"></main>
+<footer class="foot">Creative GA Visualizers · <a href="https://github.com/gddickinson/creative-genetic-problem-solver">source on GitHub</a> · <span id="mode"></span></footer>
+<script type="module" src="static/main.js"></script>
+</body>
+</html>

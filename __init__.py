@@ -5,6 +5,7 @@ A collection of genetic algorithm implementations for various optimization
 problems with matplotlib visualization.
 
 Modules:
+    _original_loader: imports the hyphenated original scripts (the underscore modules wrap them)
     ga_core: Shared GA operators (selection, crossover, mutation)
     flow_network: Flow network optimization
     game_evolution: Game theory evolution simulator
@@ -16,4 +17,6 @@ Modules:
     reaction_diffusion: Reaction-diffusion pattern simulator
     travelling_sales_person_solver: TSP solver
     vehicle_routing_optimizer: Vehicle routing with constraints
+
+Subpackage web/: FastAPI web interface and the static GitHub Pages site (see INTERFACE.md).
 """
