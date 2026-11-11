@@ -82,7 +82,9 @@ class MazeVisualizer:
                         heapq.heappush(frontier, (priority, next_pos))
                         came_from[next_pos] = current
         
-        # Reconstruct path
+        # Reconstruct path (none if the goal was never reached)
+        if self.end not in came_from:
+            return []
         current = self.end
         path = []
         while current is not None:

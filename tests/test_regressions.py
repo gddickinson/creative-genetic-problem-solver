@@ -109,3 +109,14 @@ def test_maze_ga_paths_stay_connected(seed, monkeypatch):
         assert path[0] == vis.start
         assert all(abs(a[0] - b[0]) + abs(a[1] - b[1]) == 1 for a, b in zip(path, path[1:]))
     matplotlib.pyplot.close("all")
+
+
+def test_maze_astar_returns_no_path_when_goal_unreachable():
+    import maze_pathfinder
+    vis = maze_pathfinder.MazeVisualizer(9, 9)
+    vis.maze[:] = 1
+    vis.maze[vis.start] = 0
+    vis.maze[vis.end] = 0
+    assert vis.astar_pathfind() == []
+    assert vis.wave_pathfind() == []
+    matplotlib.pyplot.close("all")
