@@ -120,3 +120,20 @@ def test_maze_astar_returns_no_path_when_goal_unreachable():
     assert vis.astar_pathfind() == []
     assert vis.wave_pathfind() == []
     matplotlib.pyplot.close("all")
+
+
+# --- neural-vis.py: the 'squares' dataset should be two nested squares ------------------------------------------
+@pytest.mark.parametrize("n_samples", [200, 202, 150])
+def test_neural_squares_are_square_outlines(n_samples):
+    import neural_vis
+    np.random.seed(0)
+    net = neural_vis.NeuralNetVisualizer([2, 3, 1])
+    X, y = net.generate_data(n_samples, "squares")
+    assert len(X) == len(y) == n_samples
+    for cls in (0, 1):
+        P = X[y == cls]
+        lo, hi = np.percentile(P, 5, axis=0), np.percentile(P, 95, axis=0)   # robust to the 0.05 jitter
+        # distance of each point to the nearest side of its class's bounding box, relative to the box size
+        d = np.minimum(np.abs(P - lo), np.abs(P - hi)).min(axis=1) / (hi - lo).max()
+        assert np.mean(d < 0.12) > 0.9, f"class {cls}: points do not lie on a square outline"
+    matplotlib.pyplot.close("all")

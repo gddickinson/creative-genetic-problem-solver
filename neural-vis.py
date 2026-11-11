@@ -108,10 +108,12 @@ class NeuralNetVisualizer:
             
         elif pattern == 'squares':
             # Nested squares
-            def generate_square(size, offset):
-                t = np.linspace(0, 4, points_per_class//4)
+            def generate_square(size, offset, n):
+                # n points spread along the four edges of a size x size square (t runs 0 -> 1 on each edge)
+                counts = [n // 4 + (1 if i < n % 4 else 0) for i in range(4)]
                 points = []
-                for i in range(4):
+                for i, k in enumerate(counts):
+                    t = np.linspace(0, 1, k, endpoint=False)
                     if i == 0:  # Bottom edge
                         points.extend(list(zip(t*size, [0]*len(t))))
                     elif i == 1:  # Right edge
@@ -122,10 +124,11 @@ class NeuralNetVisualizer:
                         points.extend(list(zip([0]*len(t), (1-t)*size)))
                 return np.array(points) + offset
             
+            n_outer = n_samples - points_per_class
             # Inner square
-            X[:points_per_class] = generate_square(1, [-0.5, -0.5]) + np.random.randn(points_per_class, 2) * 0.05
+            X[:points_per_class] = generate_square(1, [-0.5, -0.5], points_per_class) + np.random.randn(points_per_class, 2) * 0.05
             # Outer square
-            X[points_per_class:] = generate_square(2, [-1, -1]) + np.random.randn(points_per_class, 2) * 0.05
+            X[points_per_class:] = generate_square(2, [-1, -1], n_outer) + np.random.randn(n_outer, 2) * 0.05
             y[points_per_class:] = 1
             
         elif pattern == 'gaussian':
