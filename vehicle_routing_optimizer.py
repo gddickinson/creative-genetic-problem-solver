@@ -1,18 +1,17 @@
-"""Vehicle routing optimizer using genetic algorithms."""
+"""Capacitated vehicle routing with time windows, optimised by a GA.
 
-# Underscore-renamed version of vehicle-routing-optimizer.py for valid Python imports.
+Importable name for `vehicle-routing-optimizer.py` (the original script, which holds the code).
+"""
+try:
+    from ._original_loader import load, run_as_main
+except ImportError:
+    from _original_loader import load, run_as_main
 
-import importlib.util
-import os
-
-_dir = os.path.dirname(os.path.abspath(__file__))
-_spec = importlib.util.spec_from_file_location(
-    "vrp_optimizer_orig",
-    os.path.join(_dir, "vehicle-routing-optimizer.py")
-)
-_mod = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_mod)
+_mod = load("vehicle-routing-optimizer.py")
 
 Location = _mod.Location
 Vehicle = _mod.Vehicle
 VehicleRoutingOptimizer = _mod.VehicleRoutingOptimizer
+
+if __name__ == "__main__":
+    run_as_main("vehicle-routing-optimizer.py")

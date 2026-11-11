@@ -1,17 +1,16 @@
-"""Portfolio optimization using genetic algorithms."""
+"""Portfolio weights optimised by a GA for the Sharpe ratio.
 
-# Underscore-renamed version of portfolio-optimizer.py for valid Python imports.
+Importable name for `portfolio-optimizer.py` (the original script, which holds the code).
+"""
+try:
+    from ._original_loader import load, run_as_main
+except ImportError:
+    from _original_loader import load, run_as_main
 
-import importlib.util
-import os
-
-_dir = os.path.dirname(os.path.abspath(__file__))
-_spec = importlib.util.spec_from_file_location(
-    "portfolio_optimizer_orig",
-    os.path.join(_dir, "portfolio-optimizer.py")
-)
-_mod = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_mod)
+_mod = load("portfolio-optimizer.py")
 
 Portfolio = _mod.Portfolio
 PortfolioOptimizer = _mod.PortfolioOptimizer
+
+if __name__ == "__main__":
+    run_as_main("portfolio-optimizer.py")
