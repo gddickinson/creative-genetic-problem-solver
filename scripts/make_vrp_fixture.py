@@ -24,11 +24,13 @@ def run(seed, n_loc, n_veh, speed, pop, gens):
             "capacities": [v.capacity for v in opt.vehicles], "initial": [v.route for v in initial],
             "history": [h["best_fitness"] for h in opt.history],
             "best": [v.route for v in opt.best_solution] if opt.best_solution else None, "best_fitness": opt.best_fitness,
-            "initial_cost": opt.solution_cost(initial), "initial_undelivered": opt.undelivered(initial)}
+            "initial_cost": opt.solution_cost(initial), "initial_undelivered": opt.undelivered(initial),
+            "best_undelivered": opt.undelivered(opt.best_solution) if opt.best_solution else None}
 
 
 def fixture():
-    return {"runs": [run(1, 12, 3, 20.0, 20, 12), run(2, 20, 3, 1.0, 10, 4), run(5, 15, 4, 10.0, 24, 10)]}
+    return {"runs": [run(1, 12, 3, 20.0, 20, 12), run(2, 20, 3, 1.0, 10, 4), run(5, 15, 4, 10.0, 24, 10),
+                     run(7, 20, 3, 5.0, 20, 15), run(7, 25, 4, 8.0, 20, 12)]}
 
 
 if __name__ == "__main__":

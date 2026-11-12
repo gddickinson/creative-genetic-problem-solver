@@ -130,15 +130,13 @@ class VehicleRoutingOptimizer:
 
         return total_distance, valid
 
-    def create_initial_solution(self) -> List[Vehicle]:
-        """Create initial solution using nearest neighbor with constraints"""
-        vehicles = [Vehicle(v.id, v.capacity, [], v.color) for v in self.vehicles]
-        unassigned = list(range(1, self.n_locations))
+    def insert_cheapest(self, vehicles: List[Vehicle], loc_ids: List[int], warn: bool = False) -> List[int]:
+        """Insert each location (in order) where the receiving route stays valid and is shortest.
 
-        # Sort locations by priority (high to low)
-        unassigned.sort(key=lambda x: -self.locations[x].priority)
-
-        for loc_id in unassigned:
+        Routes are changed in place; returns the locations that fit nowhere.
+        """
+        unplaced = []
+        for loc_id in loc_ids:
             best_vehicle = None
             best_position = None
             best_cost = float('inf')
@@ -165,9 +163,32 @@ class VehicleRoutingOptimizer:
             if best_vehicle is not None:
                 best_vehicle.route.insert(best_position, loc_id)
             else:
-                print(f"Warning: Could not assign location {loc_id}")
+                unplaced.append(loc_id)
+                if warn:
+                    print(f"Warning: Could not assign location {loc_id}")
+        return unplaced
 
+    def create_initial_solution(self) -> List[Vehicle]:
+        """Create initial solution using cheapest feasible insertion, highest priority first"""
+        vehicles = [Vehicle(v.id, v.capacity, [], v.color) for v in self.vehicles]
+        unassigned = list(range(1, self.n_locations))
+
+        # Sort locations by priority (high to low)
+        unassigned.sort(key=lambda x: -self.locations[x].priority)
+        self.insert_cheapest(vehicles, unassigned, warn=True)
         return vehicles
+
+    def repair(self, solution: List[Vehicle]) -> List[Vehicle]:
+        """Re-insert locations no route visits (highest priority first) wherever they now fit.
+
+        Without this the GA could never deliver a location the initial heuristic failed to place: crossover and
+        mutation only rearrange locations that are already in some route.
+        """
+        visited = {loc_id for v in solution for loc_id in v.route}
+        missing = [i for i in range(1, self.n_locations) if i not in visited]
+        missing.sort(key=lambda x: -self.locations[x].priority)
+        self.insert_cheapest(solution, missing)
+        return solution
 
     def crossover(self, parent1: List[Vehicle], parent2: List[Vehicle]) -> List[Vehicle]:
         """Create child solution from two parents"""
@@ -311,7 +332,7 @@ class VehicleRoutingOptimizer:
 
                 # Create and mutate child
                 child = self.crossover(parent1, parent2)
-                child = self.mutate(child)
+                child = self.repair(self.mutate(child))
                 new_population.append(child)
 
             population = new_population

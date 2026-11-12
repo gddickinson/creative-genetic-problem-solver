@@ -34,7 +34,8 @@
 
 - **`vehicle_routing_report.py`** -- `print_summary(opt)`: the end-of-run analysis printed by
   `vehicle-routing-optimizer.py` (split out to keep the script under 500 lines). The optimizer ranks solutions by
-  `solution_cost()` = distance + `UNDELIVERED_PENALTY` (1000) per location no route visits.
+  `solution_cost()` = distance + `UNDELIVERED_PENALTY` (1000) per location no route visits; each child is
+  passed through `repair()` (cheapest feasible re-insertion of missing locations, via `insert_cheapest()`).
 - `packing-optimizer.py`: `PackingItem.footprint()` (rotation-aware size), `PackingOptimizer.ranking_score()` (fitness,
   or an overlap-depth penalty for invalid layouts) drives selection and mutation.
 

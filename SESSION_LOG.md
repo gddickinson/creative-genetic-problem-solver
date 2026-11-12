@@ -38,6 +38,7 @@ Nothing ran on the Mac mini.
   overlaps. The GA now ranks by `ranking_score` (overlap-depth penalty for invalid layouts); default runs find a valid
   layout on 7/8 Python seeds and 20/20 web seeds.
 - vehicle-routing-optimizer.py: GA cost = distance + 1000 per undelivered location (`solution_cost`), summary moved
-  to `vehicle_routing_report.py`. Still open: the operators never re-insert a location the first heuristic could not
-  place, and the speed default (1.0).
+  to `vehicle_routing_report.py`. Then a `repair()` step after crossover/mutation re-inserts undelivered locations by
+  cheapest feasible insertion (`insert_cheapest`, shared with the initial heuristic), so the GA can deliver locations
+  the initial solution missed. Still open: the speed default (1.0).
 - JS engines, pages and fixtures regenerated to match; all KIT checks re-run.

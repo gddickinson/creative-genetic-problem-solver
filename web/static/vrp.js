@@ -35,12 +35,14 @@ route('vrp', () => {
       <div class="card"><b>Selection</b><span>Two-way tournaments among the 20 best solutions.</span></div>
       <div class="card"><b>Crossover</b><span>Keep each of parent 1's routes up to a random cut, then deal parent 2's remaining locations round-robin over the vehicles.</span></div>
       <div class="card"><b>Mutation</b><span>With probability 0.1: swap two locations, reverse part of a route, or move a location to another position or vehicle.</span></div>
+      <div class="card"><b>Repair</b><span>Each child then gets its undelivered locations re-inserted by the same cheapest-feasible-insertion rule, where they fit.</span></div>
       <div class="card"><b>Elitism</b><span>The best 10% survive unchanged.</span></div></div>
       <div class="callout"><b>Vehicle speed.</b> The script originally took one map unit to take one hour (speed 1, still its
       default). Legs are then tens of hours long while windows close by hour 20, so almost no location can be served and
       the routes stay empty; this page therefore starts at speed 15. Set it to 1 to see the desktop behaviour. Every
-      undelivered location adds 1,000 to the cost, so a solution that serves more locations always ranks higher; note
-      that the operators only rearrange locations the first heuristic placed, so they never add a missing one back.</div>`,
+      undelivered location adds 1,000 to the cost, so a solution that serves more locations always ranks higher; after
+      crossover and mutation a repair step re-inserts missing locations wherever they now fit, so the GA can deliver
+      locations the first heuristic could not place.</div>`,
   });
 
   function render() {

@@ -257,3 +257,18 @@ def test_vrp_cost_ranks_more_deliveries_higher():
     for v in fewer:
         v.capacity = 1.0                                              # breaking a constraint is still infinite
     assert opt.solution_cost(fewer) == float("inf")
+
+
+def test_vrp_ga_can_deliver_locations_the_initial_heuristic_missed():
+    import contextlib
+    import io
+    import vehicle_routing_optimizer as vrp
+    random.seed(0)
+    with contextlib.redirect_stdout(io.StringIO()):
+        opt = vrp.VehicleRoutingOptimizer(20, 3, speed=5.0)
+        initial = opt.create_initial_solution()
+        opt.optimize(generations=40, population_size=30)
+    matplotlib.pyplot.close("all")
+    assert opt.undelivered(opt.best_solution) < opt.undelivered(initial)
+    served = [i for v in opt.best_solution for i in v.route]
+    assert len(served) == len(set(served))                  # repair never duplicates a location

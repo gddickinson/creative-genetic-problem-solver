@@ -43,12 +43,10 @@ export class VRP {
   undelivered(sol) { return this.nLocations - 1 - new Set(sol.flat()).size; }
   // solution_cost: distance + penalty per undelivered location; Infinity if a capacity or time window is broken.
   cost(sol) { const [d, ok] = this.fitness(sol); return ok ? d + UNDELIVERED_PENALTY * this.undelivered(sol) : Infinity; }
-  // Cheapest feasible insertion, highest priority first; locations with no feasible slot stay unassigned.
-  initialSolution() {
-    const routes = this.vehicles.map(() => []);
-    const order = Array.from({ length: this.nLocations - 1 }, (_, i) => i + 1)
-      .sort((a, b) => this.locations[b].priority - this.locations[a].priority);
-    for (const id of order) {
+  // insert_cheapest: put each location where its route stays valid and is shortest (in place); returns the rest.
+  insertCheapest(routes, ids) {
+    const unplaced = [];
+    for (const id of ids) {
       let bv = -1, bp = -1, bc = Infinity;
       routes.forEach((r, v) => {
         for (let i = 0; i <= r.length; i++) {
@@ -56,9 +54,22 @@ export class VRP {
           if (ok && d < bc) { bv = v; bp = i; bc = d; }
         }
       });
-      if (bv >= 0) routes[bv].splice(bp, 0, id);
+      if (bv >= 0) routes[bv].splice(bp, 0, id); else unplaced.push(id);
     }
+    return unplaced;
+  }
+  byPriority(ids) { return ids.sort((a, b) => this.locations[b].priority - this.locations[a].priority); }
+  // Cheapest feasible insertion, highest priority first; locations with no feasible slot stay unassigned.
+  initialSolution() {
+    const routes = this.vehicles.map(() => []);
+    this.insertCheapest(routes, this.byPriority(Array.from({ length: this.nLocations - 1 }, (_, i) => i + 1)));
     return routes;
+  }
+  // repair: re-insert locations no route visits, highest priority first, wherever they now fit.
+  repair(sol) {
+    const seen = new Set(sol.flat());
+    this.insertCheapest(sol, this.byPriority(Array.from({ length: this.nLocations - 1 }, (_, i) => i + 1).filter(i => !seen.has(i))));
+    return sol;
   }
   crossover(p1, p2) {
     const child = this.vehicles.map(() => []), all = p1.flat();
@@ -101,7 +112,7 @@ export class VRP {
     this.current = scored[0].s; this.history.push(scored[0].f);
     const next = scored.slice(0, Math.floor(this.populationSize / 10)).map(x => x.s), top = scored.slice(0, 20);
     const pick = () => { const [a, b] = this.R.sample(top, 2); return (b.f < a.f ? b : a).s; };
-    while (next.length < this.populationSize) { const a = pick(), b = pick(); next.push(this.mutate(this.crossover(a, b))); }
+    while (next.length < this.populationSize) { const a = pick(), b = pick(); next.push(this.repair(this.mutate(this.crossover(a, b)))); }
     this.population = next; this.generation++;
   }
 }

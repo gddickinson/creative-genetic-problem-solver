@@ -14,6 +14,6 @@ for (const r of fixture('vrp').runs) {
   v.populationSize = r.pop;
   for (let g = 0; g < r.gens; g++) v.step();
   near(v.history, r.history, `seed ${r.seed} history`);
-  near(v.best, r.best, 'best routes'); near(v.bestFitness, r.best_fitness, 'best fitness');
+  near(v.best, r.best, 'best routes'); if (v.best) near(v.undelivered(v.best), r.best_undelivered, 'undelivered'); near(v.bestFitness, r.best_fitness, 'best fitness');
 }
 console.log('vrp_engine: ok');
